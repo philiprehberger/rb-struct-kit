@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-
+require 'spec_helper'
 RSpec.describe Philiprehberger::StructKit::Definition do
   describe '#field' do
     it 'registers fields with types' do
