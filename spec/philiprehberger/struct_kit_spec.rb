@@ -1,116 +1,167 @@
 # frozen_string_literal: true
+
 require 'spec_helper'
+require 'json'
+
 RSpec.describe Philiprehberger::StructKit do
+  it 'has a version number' do
+    expect(Philiprehberger::StructKit::VERSION).not_to be_nil
+  end
+
   describe '.define' do
-    let(:user_class) do
-      described_class.define do
+    it 'creates a struct with fields and allows attribute access' do
+      klass = described_class.define do
         field :name, String
         field :age, Integer, default: 0
-        field :role, Symbol, default: :user
       end
-    end
 
-    it 'creates a class with attribute readers' do
-      user = user_class.new(name: 'Alice', age: 30)
+      user = klass.new(name: 'Alice', age: 30)
       expect(user.name).to eq('Alice')
       expect(user.age).to eq(30)
-      expect(user.role).to eq(:user)
-    end
-
-    it 'applies default values' do
-      user = user_class.new(name: 'Bob')
-      expect(user.age).to eq(0)
-      expect(user.role).to eq(:user)
-    end
-
-    it 'raises ArgumentError for missing required fields' do
-      expect { user_class.new(age: 25) }.to raise_error(ArgumentError, /missing keyword: name/)
     end
 
     it 'raises TypeError for wrong type' do
-      expect { user_class.new(name: 123) }.to raise_error(TypeError, /name must be a String/)
+      klass = described_class.define do
+        field :name, String
+      end
+
+      expect { klass.new(name: 123) }.to raise_error(TypeError, /name must be String/)
     end
 
-    it 'freezes instances by default' do
-      user = user_class.new(name: 'Alice')
-      expect(user).to be_frozen
-    end
-  end
+    it 'supports array of types' do
+      klass = described_class.define do
+        field :active, [TrueClass, FalseClass]
+      end
 
-  describe 'lambda defaults' do
-    let(:klass) do
-      described_class.define do
+      expect(klass.new(active: true).active).to be true
+      expect(klass.new(active: false).active).to be false
+      expect { klass.new(active: 'yes') }.to raise_error(TypeError)
+    end
+
+    it 'applies static default values' do
+      klass = described_class.define do
+        field :role, Symbol, default: :user
+      end
+
+      expect(klass.new.role).to eq(:user)
+    end
+
+    it 'applies lambda default values' do
+      klass = described_class.define do
         field :items, Array, default: -> { [] }
       end
-    end
 
-    it 'calls lambda for each instance' do
       a = klass.new
       b = klass.new
+      expect(a.items).to eq([])
       expect(a.items.object_id).not_to eq(b.items.object_id)
+    end
+
+    it 'raises ArgumentError for missing required field' do
+      klass = described_class.define do
+        field :name, String
+      end
+
+      expect { klass.new }.to raise_error(ArgumentError, /missing keyword: name/)
     end
   end
 
-  describe 'coercion' do
-    let(:klass) do
-      described_class.define do
-        field :count, Integer, default: 0, coerce: ->(v) { v.to_i }
+  describe 'validation' do
+    it 'validates range' do
+      klass = described_class.define do
+        field :age, Integer
+        validate :age, range: 0..150
       end
+
+      expect { klass.new(age: 200) }.to raise_error(ArgumentError, /range/)
+      expect(klass.new(age: 25).age).to eq(25)
     end
 
-    it 'coerces values' do
-      instance = klass.new(count: '42')
-      expect(instance.count).to eq(42)
+    it 'validates format with regex' do
+      klass = described_class.define do
+        field :email, String
+        validate :email, format: /@/
+      end
+
+      expect { klass.new(email: 'invalid') }.to raise_error(ArgumentError, /format/)
+      expect(klass.new(email: 'a@b.com').email).to eq('a@b.com')
+    end
+
+    it 'validates with custom block' do
+      klass = described_class.define do
+        field :name, String
+        validate(:name) { |v| 'must not be empty' if v.empty? }
+      end
+
+      expect { klass.new(name: '') }.to raise_error(ArgumentError, /must not be empty/)
+      expect(klass.new(name: 'Alice').name).to eq('Alice')
+    end
+  end
+
+  describe 'frozen by default' do
+    it 'freezes instances' do
+      klass = described_class.define do
+        field :name, String
+      end
+
+      user = klass.new(name: 'Alice')
+      expect(user).to be_frozen
+    end
+
+    it 'raises FrozenError on mutation attempt' do
+      klass = described_class.define do
+        field :name, String
+      end
+
+      user = klass.new(name: 'Alice')
+      expect { user.instance_variable_set(:@name, 'Bob') }.to raise_error(FrozenError)
+    end
+  end
+
+  describe 'mutable: true' do
+    it 'does not freeze instances' do
+      klass = described_class.define(mutable: true) do
+        field :name, String
+      end
+
+      user = klass.new(name: 'Alice')
+      expect(user).not_to be_frozen
+    end
+
+    it 'allows mutations via writers' do
+      klass = described_class.define(mutable: true) do
+        field :name, String
+      end
+
+      user = klass.new(name: 'Alice')
+      user.name = 'Bob'
+      expect(user.name).to eq('Bob')
     end
   end
 
   describe '#to_h' do
-    let(:klass) do
-      described_class.define do
+    it 'returns hash of field values' do
+      klass = described_class.define do
         field :name, String
         field :age, Integer, default: 0
       end
-    end
 
-    it 'converts to hash' do
-      instance = klass.new(name: 'Alice', age: 30)
-      expect(instance.to_h).to eq({ name: 'Alice', age: 30 })
+      user = klass.new(name: 'Alice', age: 30)
+      expect(user.to_h).to eq({ name: 'Alice', age: 30 })
     end
   end
 
-  describe '#merge' do
-    let(:klass) do
-      described_class.define do
+  describe '#to_json' do
+    it 'returns JSON string' do
+      klass = described_class.define do
         field :name, String
-        field :age, Integer, default: 0
+        field :count, Integer, default: 0
       end
-    end
 
-    it 'returns new instance with merged attributes' do
-      original = klass.new(name: 'Alice', age: 30)
-      updated = original.merge(age: 31)
-      expect(updated.age).to eq(31)
-      expect(original.age).to eq(30)
-    end
-  end
-
-  describe '#==' do
-    let(:klass) do
-      described_class.define do
-        field :name, String
-      end
-    end
-
-    it 'compares by value' do
-      a = klass.new(name: 'Alice')
-      b = klass.new(name: 'Alice')
-      expect(a).to eq(b)
-    end
-
-    it 'is false for different values' do
-      a = klass.new(name: 'Alice')
-      b = klass.new(name: 'Bob')
-      expect(a).not_to eq(b)
+      user = klass.new(name: 'Alice', count: 5)
+      parsed = JSON.parse(user.to_json)
+      expect(parsed['name']).to eq('Alice')
+      expect(parsed['count']).to eq(5)
     end
   end
 
@@ -125,32 +176,90 @@ RSpec.describe Philiprehberger::StructKit do
     it 'constructs from hash with symbol keys' do
       instance = klass.from_h({ name: 'Alice', age: 25 })
       expect(instance.name).to eq('Alice')
+      expect(instance.age).to eq(25)
     end
 
     it 'constructs from hash with string keys' do
       instance = klass.from_h({ 'name' => 'Alice', 'age' => 25 })
       expect(instance.name).to eq('Alice')
+      expect(instance.age).to eq(25)
     end
   end
 
-  describe 'pattern matching' do
-    let(:klass) do
-      described_class.define do
+  describe '#deconstruct_keys' do
+    it 'returns requested keys for pattern matching' do
+      klass = described_class.define do
         field :name, String
         field :role, Symbol, default: :user
       end
-    end
 
-    it 'supports deconstruct_keys' do
       instance = klass.new(name: 'Alice')
       result = instance.deconstruct_keys([:name])
       expect(result).to eq({ name: 'Alice' })
     end
 
     it 'returns all keys when nil passed' do
+      klass = described_class.define do
+        field :name, String
+        field :role, Symbol, default: :user
+      end
+
       instance = klass.new(name: 'Alice')
       result = instance.deconstruct_keys(nil)
       expect(result).to eq({ name: 'Alice', role: :user })
+    end
+  end
+
+  describe '#==' do
+    let(:klass) do
+      described_class.define do
+        field :name, String
+        field :age, Integer, default: 0
+      end
+    end
+
+    it 'is equal for same field values' do
+      a = klass.new(name: 'Alice', age: 30)
+      b = klass.new(name: 'Alice', age: 30)
+      expect(a).to eq(b)
+    end
+
+    it 'is not equal for different field values' do
+      a = klass.new(name: 'Alice', age: 30)
+      b = klass.new(name: 'Bob', age: 30)
+      expect(a).not_to eq(b)
+    end
+  end
+
+  describe '#inspect' do
+    it 'returns a nice string representation' do
+      klass = described_class.define do
+        field :name, String
+      end
+
+      user = klass.new(name: 'Alice')
+      expect(user.inspect).to include('name: "Alice"')
+    end
+  end
+
+  describe 'multiple struct definitions' do
+    it 'creates independent classes' do
+      klass_a = described_class.define do
+        field :x, Integer
+      end
+
+      klass_b = described_class.define do
+        field :y, String
+      end
+
+      a = klass_a.new(x: 1)
+      b = klass_b.new(y: 'hello')
+
+      expect(a).not_to eq(b)
+      expect(a).to respond_to(:x)
+      expect(a).not_to respond_to(:y)
+      expect(b).to respond_to(:y)
+      expect(b).not_to respond_to(:x)
     end
   end
 end
