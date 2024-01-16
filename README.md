@@ -97,6 +97,22 @@ user.to_json # => '{"name":"Alice","age":30,"role":"user"}'
 User.from_h({ 'name' => 'Bob', 'age' => 25 })  # string keys OK
 ```
 
+### Coercion
+
+```ruby
+require "philiprehberger/struct_kit"
+
+User = Philiprehberger::StructKit.define do
+  field :age, Integer, coerce: ->(v) { Integer(v) }
+  field :status, Symbol, coerce: ->(v) { v.to_sym }
+  validate :age, range: 0..150
+end
+
+user = User.new(age: "25", status: "active")
+user.age    # => 25 (Integer)
+user.status # => :active (Symbol)
+```
+
 ### Pattern Matching
 
 ```ruby
@@ -118,7 +134,7 @@ Define a new struct class. Evaluates the block in DSL context.
 
 | Method | Description |
 |--------|-------------|
-| `field(name, type = nil, default: UNSET)` | Declare a typed field with optional default |
+| `field(name, type = nil, default: UNSET, coerce: nil)` | Declare a typed field with optional default and coercion |
 | `validate(name, range: nil, format: nil, &block)` | Add validation rule to a field |
 
 ### Instance Methods

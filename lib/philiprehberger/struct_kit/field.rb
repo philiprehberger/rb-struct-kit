@@ -5,13 +5,21 @@ module Philiprehberger
     class Field
       UNSET = Object.new.freeze
 
-      attr_reader :name, :type, :validations
+      attr_reader :name, :type, :validations, :coerce
 
-      def initialize(name, type = nil, default: UNSET)
+      def initialize(name, type = nil, default: UNSET, coerce: nil)
         @name = name
         @type = type
         @default = default
+        @coerce = coerce
         @validations = []
+      end
+
+      def coerce_value(value)
+        return value if @coerce.nil?
+        return @coerce.call(value) if @coerce.is_a?(Proc)
+
+        value
       end
 
       def has_default?
