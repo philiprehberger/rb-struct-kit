@@ -15,16 +15,17 @@ module Philiprehberger
         @fields[name] = Field.new(name, type, default: default, coerce: coerce)
       end
 
-      def validate(field_name, range: nil, format: nil, &block)
+      def validate(field_name, range: nil, format: nil, presence: nil, &block)
         @validations[field_name] ||= []
         rules = {}
         rules[:range] = range if range
         rules[:format] = format if format
+        rules[:presence] = presence unless presence.nil?
         @validations[field_name] << rules unless rules.empty?
         @validations[field_name] << block if block
       end
 
-      def build
+      def build # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
         fields = @fields.dup
         mutable = @mutable
 
@@ -83,14 +84,29 @@ module Philiprehberger
             end
           end
 
+          define_method(:to_a) do
+            self.class._fields.keys.map { |fname| instance_variable_get(:"@#{fname}") }
+          end
+
           define_method(:to_json) do |*args|
             require 'json'
             to_h.to_json(*args)
           end
 
+          define_method(:with) do |**changes|
+            unknown = changes.keys - self.class._fields.keys
+            raise ArgumentError, "unknown keyword: #{unknown.first}" unless unknown.empty?
+
+            self.class.new(**to_h, **changes)
+          end
+
           define_singleton_method(:from_h) do |hash|
             sym_hash = hash.transform_keys(&:to_sym)
             new(**sym_hash)
+          end
+
+          define_singleton_method(:field_names) do
+            _fields.keys
           end
 
           define_method(:deconstruct_keys) do |keys|

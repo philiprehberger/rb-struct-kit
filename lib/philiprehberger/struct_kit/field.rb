@@ -52,6 +52,7 @@ module Philiprehberger
           when Hash
             errors << "#{@name} must be in range #{rule[:range]}" if rule[:range] && !rule[:range].include?(value)
             errors << "#{@name} does not match required format" if rule[:format] && !rule[:format].match?(value.to_s)
+            errors << "#{@name} must be present" if rule[:presence] && blank?(value)
           when Proc
             msg = rule.call(value)
             errors << msg if msg.is_a?(String)
@@ -59,6 +60,15 @@ module Philiprehberger
         end
 
         errors
+      end
+
+      private
+
+      def blank?(value)
+        return true if value.nil?
+        return true if value.respond_to?(:empty?) && value.empty?
+
+        false
       end
     end
   end

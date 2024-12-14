@@ -124,6 +124,49 @@ in { role: :user }
 end
 ```
 
+### Non-destructive Updates
+
+```ruby
+require "philiprehberger/struct_kit"
+
+User = Philiprehberger::StructKit.define do
+  field :name, String
+  field :age, Integer, default: 0
+end
+
+alice = User.new(name: 'Alice', age: 30)
+older = alice.with(age: 31)
+
+alice.age # => 30 (unchanged)
+older.age # => 31
+```
+
+### Presence Validation
+
+```ruby
+Account = Philiprehberger::StructKit.define do
+  field :email, String
+  field :tags, Array, default: -> { [] }
+  validate :email, presence: true
+  validate :tags, presence: true
+end
+
+Account.new(email: '', tags: ['a']) # ArgumentError: email must be present
+Account.new(email: 'a@b', tags: []) # ArgumentError: tags must be present
+```
+
+### Introspection
+
+```ruby
+User = Philiprehberger::StructKit.define do
+  field :name, String
+  field :age, Integer, default: 0
+end
+
+User.field_names        # => [:name, :age]
+User.new(name: 'Alice', age: 30).to_a  # => ["Alice", 30]
+```
+
 ## API
 
 ### `Philiprehberger::StructKit.define(mutable: false, &block)`
@@ -135,14 +178,16 @@ Define a new struct class. Evaluates the block in DSL context.
 | Method | Description |
 |--------|-------------|
 | `field(name, type = nil, default: UNSET, coerce: nil)` | Declare a typed field with optional default and coercion |
-| `validate(name, range: nil, format: nil, &block)` | Add validation rule to a field |
+| `validate(name, range: nil, format: nil, presence: nil, &block)` | Add validation rule to a field |
 
 ### Instance Methods
 
 | Method | Description |
 |--------|-------------|
 | `#to_h` | Convert to a plain hash |
+| `#to_a` | Convert to an array of values in field-declaration order |
 | `#to_json` | Convert to JSON string |
+| `#with(**changes)` | Return a new instance with the given fields changed |
 | `#deconstruct_keys(keys)` | Pattern matching support |
 | `#==` | Value equality |
 | `#inspect` | Human-readable string representation |
@@ -152,6 +197,7 @@ Define a new struct class. Evaluates the block in DSL context.
 | Method | Description |
 |--------|-------------|
 | `.from_h(hash)` | Construct from hash (string or symbol keys) |
+| `.field_names` | Return the declared field names in order |
 
 ## Development
 
