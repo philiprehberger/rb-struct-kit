@@ -462,6 +462,62 @@ RSpec.describe Philiprehberger::StructKit do
     end
   end
 
+  describe '#with(**overrides) immutable copy-with' do
+    let(:klass) do
+      described_class.define do
+        field :name, String
+        field :age, Integer, default: 0
+        field :role, Symbol, default: :user
+      end
+    end
+
+    it 'returns a new instance, not self' do
+      original = klass.new(name: 'Alice', age: 30)
+      copy = original.with(age: 31)
+
+      expect(copy).not_to equal(original)
+      expect(copy.object_id).not_to eq(original.object_id)
+    end
+
+    it 'retains values for unchanged fields' do
+      original = klass.new(name: 'Alice', age: 30, role: :admin)
+      copy = original.with(age: 99)
+
+      expect(copy.name).to eq('Alice')
+      expect(copy.role).to eq(:admin)
+    end
+
+    it 'takes the new values for overridden fields' do
+      original = klass.new(name: 'Alice', age: 30)
+      copy = original.with(name: 'Bob', age: 40)
+
+      expect(copy.name).to eq('Bob')
+      expect(copy.age).to eq(40)
+    end
+
+    it 'runs type validation on overrides (wrong type raises TypeError)' do
+      original = klass.new(name: 'Alice', age: 30)
+
+      expect { original.with(age: 'not an integer') }.to raise_error(TypeError, /age must be Integer/)
+    end
+
+    it 'runs field validation on overrides (range raises ArgumentError)' do
+      validated = described_class.define do
+        field :age, Integer
+        validate :age, range: 0..150
+      end
+      original = validated.new(age: 20)
+
+      expect { original.with(age: 9999) }.to raise_error(ArgumentError, /range/)
+    end
+
+    it 'raises ArgumentError for unknown keys (same as new)' do
+      original = klass.new(name: 'Alice')
+
+      expect { original.with(bogus: 1) }.to raise_error(ArgumentError, /unknown keyword: bogus/)
+    end
+  end
+
   describe 'multiple struct definitions' do
     it 'creates independent classes' do
       klass_a = described_class.define do
