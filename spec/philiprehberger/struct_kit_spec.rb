@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-
+require 'spec_helper'
 RSpec.describe Philiprehberger::StructKit do
   describe '.define' do
     let(:user_class) do

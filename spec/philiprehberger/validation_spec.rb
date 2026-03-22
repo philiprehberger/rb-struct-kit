@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-
+require 'spec_helper'
 RSpec.describe Philiprehberger::StructKit::Validation do
   let(:klass) do
     Philiprehberger::StructKit.define do
