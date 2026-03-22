@@ -1,79 +1,99 @@
 # frozen_string_literal: true
 
 require_relative 'field'
-require_relative 'validation'
 
 module Philiprehberger
   module StructKit
     class Definition
-      def initialize
+      def initialize(mutable: false)
         @fields = {}
         @validations = {}
+        @mutable = mutable
       end
 
-      def field(name, type = nil, default: :__no_default__, coerce: nil)
-        @fields[name] = Field.new(name, type, default: default, coerce: coerce)
+      def field(name, type = nil, default: Field::UNSET)
+        @fields[name] = Field.new(name, type, default: default)
       end
 
-      def validate(name, **rules, &block)
-        @validations[name] ||= []
-        @validations[name] << rules unless rules.empty?
-        @validations[name] << block if block
+      def validate(field_name, range: nil, format: nil, &block)
+        @validations[field_name] ||= []
+        rules = {}
+        rules[:range] = range if range
+        rules[:format] = format if format
+        @validations[field_name] << rules unless rules.empty?
+        @validations[field_name] << block if block
       end
 
       def build
-        fields = @fields
-        validations = @validations
+        fields = @fields.dup
+        mutable = @mutable
 
-        validations.each do |name, rules|
+        # Attach validations to fields
+        @validations.each do |name, rules|
           next unless fields[name]
 
           rules.each { |rule| fields[name].add_validation(rule) }
         end
 
         klass = Class.new do
-          include Validation
-
-          define_method(:_fields_data) { fields }
-
           class << self
-            attr_accessor :_fields
+            attr_accessor :_fields, :_mutable
           end
 
-          fields.each do |name, _field|
-            attr_reader name
+          fields.each_key do |fname|
+            attr_reader fname
           end
 
           define_method(:initialize) do |**kwargs|
-            self.class._fields.each do |name, f|
-              value = if kwargs.key?(name)
-                        kwargs[name]
+            self.class._fields.each do |fname, f|
+              value = if kwargs.key?(fname)
+                        kwargs[fname]
                       elsif f.has_default?
                         f.resolve_default
                       else
-                        raise ArgumentError, "missing keyword: #{name}"
+                        raise ArgumentError, "missing keyword: #{fname}"
                       end
 
-              value = f.coerce_value(value)
-
-              unless f.validate_type(value)
-                raise TypeError, "#{name} must be a #{f.type}, got #{value.class}"
+              unless f.type_valid?(value)
+                expected = f.type.is_a?(Array) ? f.type.map(&:name).join(' or ') : f.type.name
+                raise TypeError, "#{fname} must be #{expected}, got #{value.class}"
               end
 
-              instance_variable_set(:"@#{name}", value)
+              # Run validations
+              validation_errors = f.validate_value(value)
+              raise ArgumentError, validation_errors.join(', ') unless validation_errors.empty?
+
+              instance_variable_set(:"@#{fname}", value)
             end
 
-            freeze
+            freeze unless self.class._mutable
+          end
+
+          if mutable
+            fields.each_key do |fname|
+              attr_writer fname
+            end
           end
 
           define_method(:to_h) do
-            self.class._fields.each_with_object({}) do |(name, _), hash|
-              hash[name] = instance_variable_get(:"@#{name}")
+            self.class._fields.each_with_object({}) do |(fname, _), hash|
+              hash[fname] = instance_variable_get(:"@#{fname}")
             end
           end
 
-          define_method(:merge) do |**attrs|
-            self.class.new(**to_h.merge(attrs))
+          define_method(:to_json) do |*args|
+            require 'json'
+            to_h.to_json(*args)
+          end
+
+          define_singleton_method(:from_h) do |hash|
+            sym_hash = hash.transform_keys(&:to_sym)
+            new(**sym_hash)
+          end
+
+          define_method(:deconstruct_keys) do |keys|
+            h = to_h
+            keys ? h.slice(*keys) : h
           end
 
           define_method(:==) do |other|
@@ -84,25 +104,16 @@ module Philiprehberger
             to_h.hash
           end
 
-          define_method(:deconstruct_keys) do |keys|
-            h = to_h
-            keys ? h.slice(*keys) : h
-          end
-
-          define_method(:to_s) do
+          define_method(:inspect) do
             fields_str = to_h.map { |k, v| "#{k}: #{v.inspect}" }.join(', ')
             "#<#{self.class.name || 'StructKit'} #{fields_str}>"
           end
 
-          define_method(:inspect) { to_s }
-
-          define_singleton_method(:from_h) do |hash|
-            sym_hash = hash.transform_keys(&:to_sym)
-            new(**sym_hash)
-          end
+          alias_method :to_s, :inspect
         end
 
         klass._fields = fields
+        klass._mutable = mutable
         klass
       end
     end

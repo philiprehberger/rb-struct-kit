@@ -1,10 +1,9 @@
 # philiprehberger-struct_kit
 
-[![Tests](https://github.com/philiprehberger/rb-struct-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/philiprehberger/rb-struct-kit/actions/workflows/ci.yml)
-[![Gem Version](https://badge.fury.io/rb/philiprehberger-struct_kit.svg)](https://rubygems.org/gems/philiprehberger-struct_kit)
-[![License](https://img.shields.io/github/license/philiprehberger/rb-struct-kit)](LICENSE)
+[![Gem Version](https://badge.fury.io/rb/philiprehberger-struct_kit.svg)](https://badge.fury.io/rb/philiprehberger-struct_kit)
+[![CI](https://github.com/philiprehberger/rb-struct-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/philiprehberger/rb-struct-kit/actions/workflows/ci.yml)
 
-Enhanced struct builder with typed fields, defaults, validation, and pattern matching
+Enhanced struct builder with typed fields, defaults, validation, and pattern matching.
 
 ## Requirements
 
@@ -20,7 +19,7 @@ gem 'philiprehberger-struct_kit'
 
 Or install directly:
 
-```bash
+```sh
 gem install philiprehberger-struct_kit
 ```
 
@@ -39,66 +38,67 @@ end
 user = User.new(name: 'Alice', age: 30)
 user.name   # => "Alice"
 user.age    # => 30
-user.role   # => :user
+user.frozen? # => true
 ```
 
-### Defaults
+### Type Checking
+
+```ruby
+Point = Philiprehberger::StructKit.define do
+  field :x, Integer
+  field :y, Integer
+  field :active, [TrueClass, FalseClass], default: true
+end
+
+Point.new(x: 1, y: 2)            # OK
+Point.new(x: 'a', y: 2)          # TypeError!
+Point.new(x: 1, y: 2, active: 0) # TypeError!
+```
+
+### Default Values
 
 ```ruby
 Config = Philiprehberger::StructKit.define do
   field :timeout, Integer, default: 30
-  field :tags, Array, default: -> { [] }
+  field :tags, Array, default: -> { [] }  # lambda for mutable defaults
 end
-
-config = Config.new
-config.timeout  # => 30
-config.tags     # => []
-```
-
-### Type Coercion
-
-```ruby
-Record = Philiprehberger::StructKit.define do
-  field :count, Integer, default: 0, coerce: ->(v) { v.to_i }
-end
-
-record = Record.new(count: '42')
-record.count  # => 42
 ```
 
 ### Validation
 
 ```ruby
-user = User.new(name: 'Alice', age: 200)
-user.valid?   # => false
-user.errors   # => ["age must be in range 0..150"]
+Email = Philiprehberger::StructKit.define do
+  field :address, String
+  validate :address, format: /@/
+end
 ```
 
-### Immutability
+### Mutable Structs
 
 ```ruby
-user = User.new(name: 'Alice')
-user.frozen?  # => true
+MutableUser = Philiprehberger::StructKit.define(mutable: true) do
+  field :name, String
+  field :age, Integer, default: 0
+end
 
-updated = user.merge(age: 31)  # returns new instance
-updated.age  # => 31
-user.age     # => 0 (unchanged)
+user = MutableUser.new(name: 'Alice')
+user.name = 'Bob'  # OK, not frozen
 ```
 
-### Hash Serialization
+### Serialization
 
 ```ruby
 user = User.new(name: 'Alice', age: 30)
-user.to_h  # => { name: "Alice", age: 30, role: :user }
 
-User.from_h({ name: 'Bob', age: 25 })
+user.to_h    # => { name: "Alice", age: 30, role: :user }
+user.to_json # => '{"name":"Alice","age":30,"role":"user"}'
+
+User.from_h({ 'name' => 'Bob', 'age' => 25 })  # string keys OK
 ```
 
 ### Pattern Matching
 
 ```ruby
-user = User.new(name: 'Alice', role: :admin)
-
 case user
 in { role: :admin }
   puts 'Admin user'
@@ -109,43 +109,41 @@ end
 
 ## API
 
-### `Philiprehberger::StructKit`
+### `Philiprehberger::StructKit.define(mutable: false, &block)`
+
+Define a new struct class. Evaluates the block in DSL context.
+
+### DSL Methods
 
 | Method | Description |
 |--------|-------------|
-| `.define { block }` | Define a new struct class with the DSL |
-
-### DSL (inside `define` block)
-
-| Method | Description |
-|--------|-------------|
-| `field :name, Type, default:, coerce:` | Define a typed field with optional default and coercion |
-| `validate :name, range:, format:` | Add validation rules to a field |
+| `field(name, type = nil, default: UNSET)` | Declare a typed field with optional default |
+| `validate(name, range: nil, format: nil, &block)` | Add validation rule to a field |
 
 ### Instance Methods
 
 | Method | Description |
 |--------|-------------|
 | `#to_h` | Convert to a plain hash |
-| `#merge(**attrs)` | Return a new instance with merged attributes |
-| `#valid?` | Whether all validations pass |
-| `#errors` | Array of validation error messages |
+| `#to_json` | Convert to JSON string |
 | `#deconstruct_keys(keys)` | Pattern matching support |
+| `#==` | Value equality |
+| `#inspect` | Human-readable string representation |
 
 ### Class Methods
 
 | Method | Description |
 |--------|-------------|
-| `.from_h(hash)` | Construct from a hash (string or symbol keys) |
+| `.from_h(hash)` | Construct from hash (string or symbol keys) |
 
 ## Development
 
-```bash
+```sh
 bundle install
-bundle exec rspec      # Run tests
-bundle exec rubocop    # Check code style
+bundle exec rspec
+bundle exec rubocop
 ```
 
 ## License
 
-MIT
+MIT License. See [LICENSE](LICENSE) for details.

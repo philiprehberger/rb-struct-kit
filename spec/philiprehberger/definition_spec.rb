@@ -1,5 +1,7 @@
 # frozen_string_literal: true
+
 require 'spec_helper'
+
 RSpec.describe Philiprehberger::StructKit::Definition do
   describe '#field' do
     it 'registers fields with types' do
@@ -25,26 +27,16 @@ RSpec.describe Philiprehberger::StructKit::Definition do
       instance = klass.new
       expect(instance.status).to eq(:pending)
     end
-
-    it 'supports coercion' do
-      defn = described_class.new
-      defn.field(:count, Integer, default: 0, coerce: ->(v) { v.to_i })
-      klass = defn.build
-      instance = klass.new(count: '5')
-      expect(instance.count).to eq(5)
-    end
   end
 
   describe '#validate' do
-    it 'adds range validation' do
+    it 'raises on invalid range' do
       defn = described_class.new
       defn.field(:age, Integer, default: 0)
       defn.validate(:age, range: 0..150)
       klass = defn.build
 
-      instance = klass.new(age: 200)
-      expect(instance).not_to be_valid
-      expect(instance.errors).to include(a_string_matching(/range/))
+      expect { klass.new(age: 200) }.to raise_error(ArgumentError, /range/)
     end
 
     it 'passes valid range' do
@@ -53,8 +45,7 @@ RSpec.describe Philiprehberger::StructKit::Definition do
       defn.validate(:age, range: 0..150)
       klass = defn.build
 
-      instance = klass.new(age: 25)
-      expect(instance).to be_valid
+      expect { klass.new(age: 25) }.not_to raise_error
     end
   end
 
