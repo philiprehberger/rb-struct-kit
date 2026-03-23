@@ -4,7 +4,7 @@
 [![Gem Version](https://badge.fury.io/rb/philiprehberger-struct_kit.svg)](https://rubygems.org/gems/philiprehberger-struct_kit)
 [![License](https://img.shields.io/github/license/philiprehberger/rb-struct-kit)](LICENSE)
 
-Enhanced struct builder with typed fields, defaults, validation, and pattern matching.
+Enhanced struct builder with typed fields, defaults, validation, and pattern matching
 
 ## Requirements
 
@@ -20,7 +20,7 @@ gem 'philiprehberger-struct_kit'
 
 Or install directly:
 
-```sh
+```bash
 gem install philiprehberger-struct_kit
 ```
 
@@ -139,7 +139,7 @@ Define a new struct class. Evaluates the block in DSL context.
 
 ## Development
 
-```sh
+```bash
 bundle install
 bundle exec rspec
 bundle exec rubocop
@@ -147,4 +147,4 @@ bundle exec rubocop
 
 ## License
 
-MIT License. See [LICENSE](LICENSE) for details.
+MIT
