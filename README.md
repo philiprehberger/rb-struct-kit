@@ -1,8 +1,8 @@
 # philiprehberger-struct_kit
 
-[![Gem Version](https://badge.fury.io/rb/philiprehberger-struct_kit.svg)](https://badge.fury.io/rb/philiprehberger-struct_kit)
-$badge_line
-[![CI](https://github.com/philiprehberger/rb-struct-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/philiprehberger/rb-struct-kit/actions/workflows/ci.yml)
+[![Tests](https://github.com/philiprehberger/rb-struct-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/philiprehberger/rb-struct-kit/actions/workflows/ci.yml)
+[![Gem Version](https://badge.fury.io/rb/philiprehberger-struct_kit.svg)](https://rubygems.org/gems/philiprehberger-struct_kit)
+[![License](https://img.shields.io/github/license/philiprehberger/rb-struct-kit)](LICENSE)
 
 Enhanced struct builder with typed fields, defaults, validation, and pattern matching.
 
