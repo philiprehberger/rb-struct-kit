@@ -15,7 +15,7 @@ Enhanced struct builder with typed fields, defaults, validation, and pattern mat
 Add to your Gemfile:
 
 ```ruby
-gem 'philiprehberger-struct_kit'
+gem "philiprehberger-struct_kit"
 ```
 
 Or install directly:
