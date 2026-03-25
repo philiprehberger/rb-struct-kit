@@ -27,7 +27,7 @@ gem install philiprehberger-struct_kit
 ## Usage
 
 ```ruby
-require 'philiprehberger/struct_kit'
+require "philiprehberger/struct_kit"
 
 User = Philiprehberger::StructKit.define do
   field :name, String
