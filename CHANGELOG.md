@@ -7,6 +7,16 @@ and this gem adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-04
+
+### Added
+- Type coercion support via `coerce:` option on `field` DSL
+- GitHub issue template gem version field
+- Feature request "Alternatives considered" field
+
+### Fixed
+- Gemspec author and email to match standard template
+
 ## [0.1.11] - 2026-03-31
 
 ### Added

@@ -242,6 +242,63 @@ RSpec.describe Philiprehberger::StructKit do
     end
   end
 
+  describe 'coercion' do
+    it 'coerces values with a custom lambda' do
+      klass = described_class.define do
+        field :age, Integer, coerce: ->(v) { Integer(v) }
+      end
+      instance = klass.new(age: '25')
+      expect(instance.age).to eq(25)
+    end
+
+    it 'coerces before type checking' do
+      klass = described_class.define do
+        field :count, Integer, coerce: ->(v) { Integer(v) }
+      end
+      expect { klass.new(count: '10') }.not_to raise_error
+    end
+
+    it 'coerces before validation' do
+      klass = described_class.define do
+        field :age, Integer, coerce: ->(v) { Integer(v) }
+        validate :age, range: 0..150
+      end
+      instance = klass.new(age: '25')
+      expect(instance.age).to eq(25)
+    end
+
+    it 'raises when coercion fails' do
+      klass = described_class.define do
+        field :age, Integer, coerce: ->(v) { Integer(v) }
+      end
+      expect { klass.new(age: 'not_a_number') }.to raise_error(ArgumentError)
+    end
+
+    it 'skips coercion when not specified' do
+      klass = described_class.define do
+        field :name, String
+      end
+      instance = klass.new(name: 'hello')
+      expect(instance.name).to eq('hello')
+    end
+
+    it 'works with to_s coercion' do
+      klass = described_class.define do
+        field :label, String, coerce: lambda(&:to_s)
+      end
+      instance = klass.new(label: 42)
+      expect(instance.label).to eq('42')
+    end
+
+    it 'works with to_sym coercion' do
+      klass = described_class.define do
+        field :status, Symbol, coerce: lambda(&:to_sym)
+      end
+      instance = klass.new(status: 'active')
+      expect(instance.status).to eq(:active)
+    end
+  end
+
   describe 'multiple struct definitions' do
     it 'creates independent classes' do
       klass_a = described_class.define do

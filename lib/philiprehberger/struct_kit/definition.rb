@@ -11,8 +11,8 @@ module Philiprehberger
         @mutable = mutable
       end
 
-      def field(name, type = nil, default: Field::UNSET)
-        @fields[name] = Field.new(name, type, default: default)
+      def field(name, type = nil, default: Field::UNSET, coerce: nil)
+        @fields[name] = Field.new(name, type, default: default, coerce: coerce)
       end
 
       def validate(field_name, range: nil, format: nil, &block)
@@ -53,6 +53,8 @@ module Philiprehberger
                       else
                         raise ArgumentError, "missing keyword: #{fname}"
                       end
+
+              value = f.coerce_value(value)
 
               unless f.type_valid?(value)
                 expected = f.type.is_a?(Array) ? f.type.map(&:name).join(' or ') : f.type.name

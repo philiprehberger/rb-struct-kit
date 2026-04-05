@@ -5,8 +5,8 @@ require_relative 'lib/philiprehberger/struct_kit/version'
 Gem::Specification.new do |spec|
   spec.name = 'philiprehberger-struct_kit'
   spec.version = Philiprehberger::StructKit::VERSION
-  spec.authors = ['philiprehberger']
-  spec.email = ['philiprehberger@users.noreply.github.com']
+  spec.authors = ['Philip Rehberger']
+  spec.email = ['me@philiprehberger.com']
 
   spec.summary = 'Enhanced struct builder with typed fields, defaults, validation, and pattern matching'
   spec.description = 'Define data classes with typed fields, default values, validation rules, and ' \
