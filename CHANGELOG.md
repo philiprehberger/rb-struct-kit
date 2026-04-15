@@ -7,6 +7,18 @@ and this gem adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-15
+
+### Added
+- `#with(**changes)` instance method for non-destructive updates
+- `#to_a` instance method returning field values in declaration order
+- `.field_names` class method for introspecting declared fields
+- `presence:` option on `validate` DSL to reject nil/empty values
+
+### Changed
+- `spec.files` glob narrowed to `lib/**/*.rb` to match gemspec template
+- `required_ruby_version` normalized to `>= 3.1.0` to match gemspec template
+
 ## [0.2.0] - 2026-04-04
 
 ### Added
@@ -93,5 +105,7 @@ and this gem adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Value equality via `#==`
 - Keyword-only constructor
 
-[Unreleased]: https://github.com/philiprehberger/rb-struct-kit/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/philiprehberger/rb-struct-kit/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/philiprehberger/rb-struct-kit/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/philiprehberger/rb-struct-kit/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/philiprehberger/rb-struct-kit/releases/tag/v0.1.0

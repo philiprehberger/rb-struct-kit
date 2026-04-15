@@ -299,6 +299,169 @@ RSpec.describe Philiprehberger::StructKit do
     end
   end
 
+  describe '#with' do
+    let(:klass) do
+      described_class.define do
+        field :name, String
+        field :age, Integer, default: 0
+        field :role, Symbol, default: :user
+      end
+    end
+
+    it 'returns a new instance with the given fields changed' do
+      original = klass.new(name: 'Alice', age: 30)
+      updated = original.with(age: 31)
+
+      expect(updated.name).to eq('Alice')
+      expect(updated.age).to eq(31)
+      expect(updated.role).to eq(:user)
+    end
+
+    it 'does not mutate the original instance' do
+      original = klass.new(name: 'Alice', age: 30)
+      original.with(age: 99)
+
+      expect(original.age).to eq(30)
+    end
+
+    it 'returns a frozen instance by default' do
+      original = klass.new(name: 'Alice')
+      updated = original.with(name: 'Bob')
+
+      expect(updated).to be_frozen
+    end
+
+    it 'raises ArgumentError for unknown fields' do
+      original = klass.new(name: 'Alice')
+
+      expect { original.with(nope: 1) }.to raise_error(ArgumentError, /unknown keyword: nope/)
+    end
+
+    it 'returns a distinct object even with no changes' do
+      original = klass.new(name: 'Alice')
+      copy = original.with
+
+      expect(copy).to eq(original)
+      expect(copy.object_id).not_to eq(original.object_id)
+    end
+
+    it 'applies type checking on the new values' do
+      original = klass.new(name: 'Alice')
+
+      expect { original.with(age: 'oops') }.to raise_error(TypeError)
+    end
+
+    it 'applies validation on the new values' do
+      validated = described_class.define do
+        field :age, Integer
+        validate :age, range: 0..150
+      end
+      original = validated.new(age: 20)
+
+      expect { original.with(age: 500) }.to raise_error(ArgumentError, /range/)
+    end
+  end
+
+  describe '#to_a' do
+    it 'returns field values as an array in declaration order' do
+      klass = described_class.define do
+        field :name, String
+        field :age, Integer, default: 0
+        field :role, Symbol, default: :user
+      end
+
+      user = klass.new(name: 'Alice', age: 30)
+      expect(user.to_a).to eq(['Alice', 30, :user])
+    end
+
+    it 'returns an empty array for an empty struct' do
+      klass = described_class.define {}
+      expect(klass.new.to_a).to eq([])
+    end
+
+    it 'supports array destructuring' do
+      klass = described_class.define do
+        field :x, Integer
+        field :y, Integer
+      end
+
+      a, b = klass.new(x: 1, y: 2).to_a
+      expect(a).to eq(1)
+      expect(b).to eq(2)
+    end
+  end
+
+  describe '.field_names' do
+    it 'returns the declared field names in order' do
+      klass = described_class.define do
+        field :name, String
+        field :age, Integer, default: 0
+      end
+
+      expect(klass.field_names).to eq(%i[name age])
+    end
+
+    it 'returns an empty array when no fields are declared' do
+      klass = described_class.define {}
+      expect(klass.field_names).to eq([])
+    end
+
+    it 'is independent across different struct classes' do
+      klass_a = described_class.define { field :a, Integer }
+      klass_b = described_class.define { field :b, String }
+
+      expect(klass_a.field_names).to eq([:a])
+      expect(klass_b.field_names).to eq([:b])
+    end
+  end
+
+  describe 'presence validation' do
+    it 'rejects nil values' do
+      klass = described_class.define do
+        field :name, [String, NilClass]
+        validate :name, presence: true
+      end
+
+      expect { klass.new(name: nil) }.to raise_error(ArgumentError, /must be present/)
+    end
+
+    it 'rejects empty strings' do
+      klass = described_class.define do
+        field :name, String
+        validate :name, presence: true
+      end
+
+      expect { klass.new(name: '') }.to raise_error(ArgumentError, /must be present/)
+    end
+
+    it 'rejects empty arrays' do
+      klass = described_class.define do
+        field :tags, Array
+        validate :tags, presence: true
+      end
+
+      expect { klass.new(tags: []) }.to raise_error(ArgumentError, /must be present/)
+    end
+
+    it 'accepts non-empty values' do
+      klass = described_class.define do
+        field :name, String
+        validate :name, presence: true
+      end
+
+      expect(klass.new(name: 'Alice').name).to eq('Alice')
+    end
+
+    it 'does not activate when presence is false' do
+      klass = described_class.define do
+        field :name, String
+        validate :name, presence: false
+      end
+
+      expect(klass.new(name: '').name).to eq('')
+    end
+  end
+
   describe 'multiple struct definitions' do
     it 'creates independent classes' do
       klass_a = described_class.define do
