@@ -15,7 +15,7 @@ Enhanced struct builder with typed fields, defaults, validation, and pattern mat
 Add to your Gemfile:
 
 ```ruby
-gem "philiprehberger-struct_kit"
+gem 'philiprehberger-struct_kit'
 ```
 
 Or install directly:
@@ -27,7 +27,7 @@ gem install philiprehberger-struct_kit
 ## Usage
 
 ```ruby
-require "philiprehberger/struct_kit"
+require 'philiprehberger/struct_kit'
 
 User = Philiprehberger::StructKit.define do
   field :name, String
@@ -100,7 +100,7 @@ User.from_h({ 'name' => 'Bob', 'age' => 25 })  # string keys OK
 ### Coercion
 
 ```ruby
-require "philiprehberger/struct_kit"
+require 'philiprehberger/struct_kit'
 
 User = Philiprehberger::StructKit.define do
   field :age, Integer, coerce: ->(v) { Integer(v) }
@@ -127,7 +127,7 @@ end
 ### Non-destructive Updates
 
 ```ruby
-require "philiprehberger/struct_kit"
+require 'philiprehberger/struct_kit'
 
 User = Philiprehberger::StructKit.define do
   field :name, String
