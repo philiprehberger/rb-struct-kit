@@ -141,6 +141,28 @@ alice.age # => 30 (unchanged)
 older.age # => 31
 ```
 
+### Copy With Changes
+
+```ruby
+require 'philiprehberger/struct_kit'
+
+User = Philiprehberger::StructKit.define do
+  field :name, String
+  field :age, Integer, default: 0
+end
+
+alice = User.new(name: 'Alice', age: 30)
+bob   = alice.with(name: 'Bob')
+
+alice.name # => "Alice" (unchanged)
+bob.name   # => "Bob"
+bob.age    # => 30 (retained)
+
+# Overrides are re-validated through the existing type/validation system:
+alice.with(age: 'oops') # TypeError: age must be Integer, got String
+alice.with(nope: 1)     # ArgumentError: unknown keyword: nope
+```
+
 ### Presence Validation
 
 ```ruby
@@ -188,6 +210,7 @@ Define a new struct class. Evaluates the block in DSL context.
 | `#to_a` | Convert to an array of values in field-declaration order |
 | `#to_json` | Convert to JSON string |
 | `#with(**changes)` | Return a new instance with the given fields changed |
+| `#with(**overrides)` | Immutable copy-with: return a new instance with selected fields replaced (re-validated) |
 | `#deconstruct_keys(keys)` | Pattern matching support |
 | `#==` | Value equality |
 | `#inspect` | Human-readable string representation |
