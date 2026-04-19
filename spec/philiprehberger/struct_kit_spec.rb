@@ -518,6 +518,72 @@ RSpec.describe Philiprehberger::StructKit do
     end
   end
 
+  describe '.from_a' do
+    let(:klass) do
+      described_class.define do
+        field :name, String
+        field :age, Integer, default: 0
+        field :role, Symbol, default: :user
+      end
+    end
+
+    it 'roundtrips with #to_a' do
+      original = klass.new(name: 'Alice', age: 30, role: :admin)
+      expect(klass.from_a(original.to_a)).to eq(original)
+    end
+
+    it 'constructs an instance from values in declaration order' do
+      instance = klass.from_a(['Alice', 30, :admin])
+
+      expect(instance.name).to eq('Alice')
+      expect(instance.age).to eq(30)
+      expect(instance.role).to eq(:admin)
+    end
+
+    it 'raises ArgumentError when array is too short' do
+      expect { klass.from_a(['Alice', 30]) }.to raise_error(ArgumentError, /expected 3/)
+    end
+
+    it 'raises ArgumentError when array is too long' do
+      expect { klass.from_a(['Alice', 30, :admin, 'extra']) }.to raise_error(ArgumentError, /expected 3/)
+    end
+
+    it 'applies coercion to values passed in' do
+      coerced = described_class.define do
+        field :age, Integer, coerce: ->(v) { Integer(v) }
+      end
+
+      instance = coerced.from_a(['42'])
+      expect(instance.age).to eq(42)
+    end
+
+    it 'runs validation on values passed in' do
+      validated = described_class.define do
+        field :age, Integer
+        validate :age, range: 0..150
+      end
+
+      expect { validated.from_a([500]) }.to raise_error(ArgumentError, /range/)
+    end
+
+    it 'runs type checking on values passed in' do
+      expect { klass.from_a([123, 30, :user]) }.to raise_error(TypeError, /name must be String/)
+    end
+
+    it 'maps values to declaration order regardless of their position' do
+      klass_b = described_class.define do
+        field :first, Integer
+        field :second, Integer
+        field :third, Integer
+      end
+
+      instance = klass_b.from_a([1, 2, 3])
+      expect(instance.first).to eq(1)
+      expect(instance.second).to eq(2)
+      expect(instance.third).to eq(3)
+    end
+  end
+
   describe 'multiple struct definitions' do
     it 'creates independent classes' do
       klass_a = described_class.define do

@@ -177,6 +177,24 @@ Account.new(email: '', tags: ['a']) # ArgumentError: email must be present
 Account.new(email: 'a@b', tags: []) # ArgumentError: tags must be present
 ```
 
+### Positional constructor
+
+```ruby
+require 'philiprehberger/struct_kit'
+
+Point = Philiprehberger::StructKit.define do
+  field :x, Integer
+  field :y, Integer
+end
+
+p = Point.from_a([1, 2])
+p.x # => 1
+p.y # => 2
+
+# Roundtrip with #to_a
+Point.from_a(p.to_a) == p # => true
+```
+
 ### Introspection
 
 ```ruby
@@ -220,6 +238,7 @@ Define a new struct class. Evaluates the block in DSL context.
 | Method | Description |
 |--------|-------------|
 | `.from_h(hash)` | Construct from hash (string or symbol keys) |
+| `.from_a(array)` | Construct from an array of values in field-declaration order (inverse of `#to_a`) |
 | `.field_names` | Return the declared field names in order |
 
 ## Development

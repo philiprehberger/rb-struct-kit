@@ -7,6 +7,11 @@ and this gem adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-04-18
+
+### Added
+- `.from_a(array)` class method on generated structs — constructs an instance from field values in declaration order; inverse of `#to_a`; raises `ArgumentError` on length mismatch
+
 ## [0.4.0] - 2026-04-16
 
 ### Added
@@ -117,7 +122,8 @@ and this gem adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Value equality via `#==`
 - Keyword-only constructor
 
-[Unreleased]: https://github.com/philiprehberger/rb-struct-kit/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/philiprehberger/rb-struct-kit/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/philiprehberger/rb-struct-kit/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/philiprehberger/rb-struct-kit/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/philiprehberger/rb-struct-kit/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/philiprehberger/rb-struct-kit/compare/v0.2.0...v0.3.0
