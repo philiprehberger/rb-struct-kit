@@ -105,6 +105,15 @@ module Philiprehberger
             new(**sym_hash)
           end
 
+          define_singleton_method(:from_a) do |array|
+            if array.length != _fields.size
+              raise ArgumentError,
+                    "expected #{_fields.size} values for #{_fields.keys}, got #{array.length}"
+            end
+
+            new(**_fields.keys.zip(array).to_h)
+          end
+
           define_singleton_method(:field_names) do
             _fields.keys
           end
