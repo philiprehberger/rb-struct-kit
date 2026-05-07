@@ -210,6 +210,58 @@ RSpec.describe Philiprehberger::StructKit do
     end
   end
 
+  describe '#match?' do
+    let(:klass) do
+      described_class.define do
+        field :name, String
+        field :age, Integer, default: 0
+        field :role, Symbol, default: :user
+      end
+    end
+
+    it 'returns true for a matching single field' do
+      user = klass.new(name: 'Alice', age: 30, role: :user)
+      expect(user.match?(role: :user)).to be true
+    end
+
+    it 'returns false for a non-matching single field' do
+      user = klass.new(name: 'Alice', age: 30, role: :user)
+      expect(user.match?(role: :admin)).to be false
+    end
+
+    it 'returns true when every key in a multi-field pattern matches' do
+      user = klass.new(name: 'Alice', age: 30, role: :user)
+      expect(user.match?(age: 30, role: :user)).to be true
+    end
+
+    it 'returns false when any key in a multi-field pattern does not match' do
+      user = klass.new(name: 'Alice', age: 30, role: :user)
+      expect(user.match?(age: 30, role: :admin)).to be false
+    end
+
+    it 'uses === for case equality with ranges' do
+      user = klass.new(name: 'Alice', age: 30, role: :user)
+      expect(user.match?(age: 18..30)).to be true
+      expect(user.match?(age: 0..18)).to be false
+    end
+
+    it 'uses === for case equality with regex' do
+      user = klass.new(name: 'Alice', age: 30, role: :user)
+      expect(user.match?(name: /^A/)).to be true
+      expect(user.match?(name: /^Z/)).to be false
+    end
+
+    it 'returns true for an empty pattern' do
+      user = klass.new(name: 'Alice', age: 30, role: :user)
+      expect(user.match?).to be true
+    end
+
+    it 'raises ArgumentError for an unknown key' do
+      user = klass.new(name: 'Alice', age: 30, role: :user)
+      expect { user.match?(nope: 1) }.to raise_error(ArgumentError, /unknown keyword: nope/)
+    end
+  end
+
   describe '#==' do
     let(:klass) do
       described_class.define do

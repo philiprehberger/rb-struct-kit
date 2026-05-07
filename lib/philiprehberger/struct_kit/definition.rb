@@ -25,7 +25,7 @@ module Philiprehberger
         @validations[field_name] << block if block
       end
 
-      def build # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
+      def build # rubocop:disable Metrics/AbcSize, Metrics/MethodLength, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
         fields = @fields.dup
         mutable = @mutable
 
@@ -121,6 +121,13 @@ module Philiprehberger
           define_method(:deconstruct_keys) do |keys|
             h = to_h
             keys ? h.slice(*keys) : h
+          end
+
+          define_method(:match?) do |**pattern|
+            unknown = pattern.keys - self.class._fields.keys
+            raise ArgumentError, "unknown keyword: #{unknown.first}" unless unknown.empty?
+
+            pattern.all? { |k, v| v === instance_variable_get(:"@#{k}") } # rubocop:disable Style/CaseEquality
           end
 
           define_method(:==) do |other|

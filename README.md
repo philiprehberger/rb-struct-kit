@@ -124,6 +124,15 @@ in { role: :user }
 end
 ```
 
+### Pattern-Style Match
+
+```ruby
+user = User.new(name: 'Alice', age: 30, role: :user)
+user.match?(role: :user)         # => true
+user.match?(age: 18..30)         # => true (uses === for case equality)
+user.match?(name: /^A/)          # => true
+```
+
 ### Non-destructive Updates
 
 ```ruby
@@ -230,6 +239,7 @@ Define a new struct class. Evaluates the block in DSL context.
 | `#with(**changes)` | Return a new instance with the given fields changed |
 | `#with(**overrides)` | Immutable copy-with: return a new instance with selected fields replaced (re-validated) |
 | `#deconstruct_keys(keys)` | Pattern matching support |
+| `#match?(**pattern)` | Returns true when every key in pattern matches via `===` |
 | `#==` | Value equality |
 | `#inspect` | Human-readable string representation |
 
